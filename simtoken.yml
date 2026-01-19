@@ -1,0 +1,56 @@
+name: refavs1
+channels:
+  - defaults
+dependencies:
+  - python==3.10.14=h955ad1f_0
+  - openssl
+  - mkl-service==2.4.0=py310h5eee18b_1
+  - mkl_fft==1.3.8=py310h5eee18b_0
+  - fsspec==2023.10.0=py310h06a4308_0
+  - typing-extensions==4.9.0=py310h06a4308_1
+  - sqlite==3.41.2=h5eee18b_0
+  - pip==23.3.1=py310h06a4308_0
+  - readline==8.2=h5eee18b_0
+  - safetensors==0.4.2=py310ha89cbab_0
+  - libstdcxx-ng==11.2.0=h1234567_1
+  - wheel==0.41.2=py310h06a4308_0
+  - intel-openmp==2023.1.0=hdb19cb5_46306
+  - pysocks==1.7.1=py310h06a4308_0
+  - tk==8.6.12=h1ccaba5_0
+  - bzip2==1.0.8=h5eee18b_5
+  - pyyaml==6.0.1=py310h5eee18b_0
+  - charset-normalizer==2.0.4=pyhd3eb1b0_0
+  - tbb==2021.8.0=hdb19cb5_0
+  - libffi==3.4.4=h6a678d5_0
+  - libgomp==11.2.0=h1234567_1
+  - libgcc-ng==11.2.0=h1234567_1
+  - packaging==23.2=py310h06a4308_0
+  - _libgcc_mutex==0.1=main
+  - urllib3==2.1.0=py310h06a4308_1
+  - typing_extensions==4.9.0=py310h06a4308_1
+  - _openmp_mutex==5.1=1_gnu
+  - certifi
+  - numpy==1.26.4=py310h5f9d8c6_0
+  - setuptools==68.2.2=py310h06a4308_0
+  - ca-certificates
+  - blas==1.0=mkl
+  - numpy-base==1.26.4=py310hb5e798b_0
+  - mkl_random==1.2.4=py310hdb19cb5_0
+  - importlib-metadata==7.0.1=py310h06a4308_0
+  - zipp==3.17.0=py310h06a4308_0
+  - ncurses==6.4=h6a678d5_0
+  - tqdm==4.65.0=py310h2f386ee_0
+  - regex==2023.10.3=py310h5eee18b_0
+  - idna==3.4=py310h06a4308_0
+  - ld_impl_linux-64==2.38=h1181459_1
+  - filelock==3.13.1=py310h06a4308_0
+  - libuuid==1.41.5=h5eee18b_0
+  - xz==5.4.6=h5eee18b_0
+  - mkl==2023.1.0=h213fc3f_46344
+  - yaml==0.2.5=h7b6447c_0
+  - brotli-python==1.0.9=py310h6a678d5_7
+  - requests==2.31.0=py310h06a4308_1
+  - deepspeed
+  - mpi4py
+  - cudatoolkit==11.8.0
+prefix: /home/u2024110507/.conda/envs/refavs1
