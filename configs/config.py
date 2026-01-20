@@ -32,8 +32,8 @@ parser = argparse.ArgumentParser(
 
 
 parser.add_argument("--vision_pretrained",type=str,default='path/to/segment_anything/sam_vit_h_4b8939.pth')
-parser.add_argument("--vision_tower",type=str,default='/home/u2024110507/Ref_AVS/huggingface/openaiclip-vit-large-patch14')
-parser.add_argument("--mllm",type=str,default='/home/u2024110507/Ref_AVS/models/ChatUnivi7B')
+parser.add_argument("--vision_tower",type=str,default='openai/clip-vit-large-patch14')
+parser.add_argument("--mllm",type=str,default='Chat-UniVi/Chat-UniVi')
 
 parser.add_argument("--conv_template",type=int,default=1)
 parser.add_argument("--ct_weight",type=float,default=0.1)
