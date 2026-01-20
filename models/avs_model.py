@@ -101,7 +101,7 @@ def compute_alignment_loss(q: torch.Tensor, pos_feats: list, neg_feats: list, te
 
 
 
-# 模型的基础类，负责初始化视觉模块和投影层
+
 class Simtoken_MetaModel:
     def __init__(
             self,
@@ -169,19 +169,16 @@ class SemanticMemoryBank:
         self.max_per_object = max_per_object
 
     def add(self, vid: str, fid: int, feat: torch.Tensor):
-        """添加一条特征，并限制每个 (vid, fid) 对应的特征数量不超过 max_per_object"""
         feat = feat.detach().cpu()
         self.bank[vid][fid].append(feat)
         if len(self.bank[vid][fid]) > self.max_per_object:
             self.bank[vid][fid] = self.bank[vid][fid][-self.max_per_object:]  # 保留最新的 K 个
 
     def add_batch(self, vids: list, fids: list, feats: torch.Tensor):
-        """添加一批数据：vids: list[B], fids: list[B], feats: Tensor[B, D]"""
         for vid, fid, feat in zip(vids, fids, feats):
             self.add(vid, int(fid), feat)
 
     def get_positive_features(self, vids: list, fids: list):
-        """返回 List[B]，每个元素是 List[Tensor]，表示该样本的正样本特征（同vid+fid）"""
         results = []
         for vid, fid in zip(vids, fids):
             pos = self.bank[vid][int(fid)].copy()  # List[Tensor]
@@ -189,7 +186,6 @@ class SemanticMemoryBank:
         return results
 
     def get_negative_features_same_vid(self, vids: list, fids: list):
-        """返回 List[B]，每个元素是 List[Tensor]，表示该样本在同一视频中其他 fid 的负样本"""
         results = []
         for vid, fid in zip(vids, fids):
             neg = []
@@ -200,18 +196,17 @@ class SemanticMemoryBank:
         return results
 
 
-# class VISAForCausalLM(ChatUniViLlamaForCausalLM):
 class Simtoken_ForCausalLM(ChatUniViLlamaForCausalLM):
     def __init__(
             self,
             config,
             **kwargs,
     ):
-        # 判断 config 是否包含 train_mask_decoder
+
         if not hasattr(config, "train_mask_decoder"):
             #
             config.mm_use_im_start_end = kwargs.pop("use_mm_start_end", True)
-            # 获取参数中的vision_tower 没获取到默认clip
+
             config.mm_vision_tower = kwargs.get("vision_tower", "openai/clip-vit-large-patch14")
             # 从 kwargs 字典中取出 weight 的值，。如果 kwargs 里没有 eight，则返回 None
             self.ce_loss_weight = kwargs.pop("ce_loss_weight", None)
@@ -242,10 +237,9 @@ class Simtoken_ForCausalLM(ChatUniViLlamaForCausalLM):
 
 
 
-    # 提取图像embedding 注意这里不需要梯度 即是冻结的
+
     def get_visual_embs(self, pixel_values: torch.FloatTensor):
         with torch.no_grad():
-            # 这里的self.model是上面的VisaModel
             image_embeddings = self.model.visual_model.image_encoder(pixel_values)
         return image_embeddings
 
@@ -313,7 +307,6 @@ class Simtoken_ForCausalLM(ChatUniViLlamaForCausalLM):
         output_hidden_states = output.hidden_states
         # print("last layer of output_hidden_states:", output_hidden_states[-1].shape)  # [B, len, 4096]
 
-        # <seg>要提前一位
         seg_token_mask = output.labels[..., 1:] == self.seg_token_idx
         seg_token_mask = torch.cat(
             [seg_token_mask, torch.zeros((seg_token_mask.shape[0], 1), device=output.labels.device).bool(), ],
@@ -378,7 +371,6 @@ class Simtoken_ForCausalLM(ChatUniViLlamaForCausalLM):
             for prompt_idx in range(len(sparse_embeddings)):
                 low_res_masks, iou_predictions = self.model.visual_model.mask_decoder(
                     image_embeddings=image_embeddings[i * num_frames: (i + 1) * num_frames],  # [T, 256, 64, 64]
-                    # 位置编码 形状与 image_embeddings 一致。
                     image_pe=self.model.visual_model.prompt_encoder.get_dense_pe(),
                     sparse_prompt_embeddings=sparse_embeddings[prompt_idx : prompt_idx+1],
                     dense_prompt_embeddings=dense_embeddings[prompt_idx : prompt_idx+1],
@@ -409,7 +401,7 @@ class Simtoken_ForCausalLM(ChatUniViLlamaForCausalLM):
         model_output = output
         output = model_output.logits
 
-        # 计算各种loss
+
         ce_loss = model_output.loss
         ce_loss = ce_loss * self.ce_loss_weight
 
@@ -430,7 +422,7 @@ class Simtoken_ForCausalLM(ChatUniViLlamaForCausalLM):
 
             # print("gt_mask:", gt_mask.shape)
 
-            # 计算mask_bceloss
+
             mask_bce_loss += (
                     sigmoid_ce_loss(pred_mask, gt_mask, num_masks=gt_mask.shape[0])
                     * gt_mask.shape[0]
@@ -445,18 +437,10 @@ class Simtoken_ForCausalLM(ChatUniViLlamaForCausalLM):
         mask_dice_loss = self.dice_loss_weight * mask_dice_loss / (num_masks + 1e-8)
         mask_loss = mask_bce_loss + mask_dice_loss
 
-        # ct_losses = []
-        # for sample_idx, pred_embedding in enumerate(pred_embeddings):
-        #     ct_loss_sample = compute_supcon_loss(pred_embedding, fids[sample_idx])
-        #     if ct_loss_sample is not None:
-        #         ct_losses.append(ct_loss_sample)
-        # if len(ct_losses) > 0:
-        #     ct_loss = torch.stack(ct_losses).mean()
-        # else:
-        #     ct_loss = torch.tensor(0.0, requires_grad=True)
+
 
         ct_weight = contrast
-        # print("ct_weight", ct_weight)
+
 
         if epoch >= self.start:
             loss = ce_loss + mask_loss + ct_weight * ct_loss
