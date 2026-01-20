@@ -24,9 +24,9 @@ Download the official Ref-AVSBench dataset from [here](https://github.com/GeWu-L
 ### Pretrained Backbones
 Download the sam_vit_h_4b8939.pth and put it in ```./models/segment_anything```
 
-[//]: # (### Checkpoints)
+### Checkpoints
 
-[//]: # (Download our pretrained  **[Simtoken]&#40;&#41;**.)
+Download our pretrained  **[Simtoken](https://drive.google.com/drive/folders/1S-AO0Jqb6zVN1ABHH9VBpZQYJ8PQ22ES?usp=drive_link)**.
 
 ### Requirements
 Use  ```simtoken.yml``` to create your environment.
