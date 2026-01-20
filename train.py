@@ -52,12 +52,12 @@ def set_seed(seed: int = 42):
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
-    os.environ["PYTHONHASHSEED"] = str(seed)  # 保证 python 内部 hash 顺序一致
-    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # CUDA 11+，CUBLAS 确保确定性
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
-    torch.backends.cudnn.deterministic = True  # 禁用非确定性算法
-    torch.backends.cudnn.benchmark = False     # 禁用自动优化算法选择（它可能非确定性）
-    # torch.use_deterministic_algorithms(True)   # 强制 PyTorch 报错任何非确定性操作
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
 
 def seed_worker(worker_id):
     """用于 DataLoader 内部 worker 线程的随机数固定"""
@@ -79,13 +79,12 @@ def dict_to_cuda(input_dict):
     return input_dict
 
 def tokenizer_image_audio_token(prompt, tokenizer, image_token_index=IMAGE_TOKEN_INDEX, audio_token_index=AUDIO_TOKEN_INDEX, num_frames=10, return_tensors=None):
-    # 使用正则表达式分割 prompt，同时识别 <image> 和 <audio>
+
     prompt_chunks = re.split(r'(<image>|<audio>|<video>)', prompt)
 
-    # 过滤掉空字符串
+
     prompt_chunks = [chunk for chunk in prompt_chunks if chunk]
 
-    # 将 prompt_chunks 分成两类：文本部分和 token 部分
     text_chunks = []
     token_types = []
     for chunk in prompt_chunks:
@@ -98,7 +97,6 @@ def tokenizer_image_audio_token(prompt, tokenizer, image_token_index=IMAGE_TOKEN
         else:
             text_chunks.append(chunk)
 
-    # Tokenize 文本部分
     tokenized_chunks = [tokenizer(chunk).input_ids for chunk in text_chunks]
 
     def insert_separators(text_chunks, tokenized_chunks, token_types, image_token_index, audio_token_index, num_frames):
@@ -112,12 +110,11 @@ def tokenizer_image_audio_token(prompt, tokenizer, image_token_index=IMAGE_TOKEN
             offset = 1
             input_ids.append(tokenized_chunks[0][0])
 
-        # 确保 text_chunks 和 token_types 的长度一致
         min_length = min(len(text_chunks), len(token_types))
         for i in range(min_length):
-            # 添加文本部分
+
             input_ids.extend(tokenized_chunks[i][offset:])
-            # 添加对应的 token index
+
             if token_types[i] == "image":
                 input_ids.append(image_token_index)
             elif token_types[i] == "audio":
@@ -125,7 +122,7 @@ def tokenizer_image_audio_token(prompt, tokenizer, image_token_index=IMAGE_TOKEN
             elif token_types[i] == "video":
                 input_ids.extend([image_token_index] * num_frames)
 
-        # 如果 text_chunks 比 token_types 长，添加剩余的文本部分
+
         if len(text_chunks) > min_length:
             input_ids.extend(tokenized_chunks[min_length][offset:])
 
@@ -184,14 +181,13 @@ def collate_fn(batch, tokenizer=None):
     sep = 'Sure, it is [SEG]'
 
     for conversation, target in zip(conversations, labels):
-        # 用sep分割用户和系统
+
         parts = conversation.split(sep)
         # print(parts)
 
         cur_len = 1
         target[:cur_len] = IGNORE_INDEX
 
-        # Sure, it is [seg] 占的id数量
         sep_len = len(tokenizer_image_audio_token(sep, tokenizer)) - 1
 
 
@@ -226,13 +222,13 @@ if __name__ == "__main__":
     mp.set_start_method("spawn")
     set_seed(42)
     tokenizer = transformers.AutoTokenizer.from_pretrained(
-        "/home/u2024110507/Ref_AVS/models/ChatUnivi7B",  # path/to/Chatunivi 从sh文件来看其也是手动下载下来指定的
+        "Chat-UniVi/Chat-UniVi",
         cache_dir=None,
         model_max_length=2048,  # 2048
         padding_side="right",
         use_fast=False,
     )
-    # 在tokennizer中加入segtoken等
+
     tokenizer.pad_token = tokenizer.unk_token
     num_added_tokens = tokenizer.add_tokens("[SEG]")
     seg_token_idx = tokenizer("[SEG]", add_special_tokens=False).input_ids[0]  # 32000
@@ -255,19 +251,19 @@ if __name__ == "__main__":
 
 
     model_args = {
-        "train_mask_decoder": True,  # store_true 所以应该是true or false 应该是用来决定是否要训练decoder
+        "train_mask_decoder": True,
         "out_dim": 256,  # 256
         "ce_loss_weight": 1.0,
         "dice_loss_weight": 0.5,
         "bce_loss_weight": 2.0,
-        "seg_token_idx": seg_token_idx,  # [SEG] 标记的索引（input_ids）
+        "seg_token_idx": seg_token_idx,
         "vision_pretrained": args.vision_pretrained,  # sam_vit_h_xxx.pth
         "vision_tower": args.vision_tower,
         "use_im_start_end": False,
         "compress": args.compress,
         "start": args.start,
     }
-    # model = VISAForCausalLM.from_pretrained(args.mllm, torch_dtype=torch.float32, low_cpu_mem_usage=True, **model_args)
+
     model = Simtoken_ForCausalLM.from_pretrained(args.mllm, torch_dtype=torch.float32, low_cpu_mem_usage=True, **model_args)
     print("\nmodel loaded")
 
@@ -295,7 +291,7 @@ if __name__ == "__main__":
     model.get_model().initialize_cluster_modules(model_args_from_pt)
 
     model.get_model().initialize_lisa_modules(model.get_model().config)
-    # 冻结视觉模块（vision_tower）和多模态投影器
+
     for p in vision_tower.parameters():
         p.requires_grad = False
     for p in model.get_model().mm_projector.parameters():
@@ -304,16 +300,16 @@ if __name__ == "__main__":
     lora_r = 8
     target_modules = "q_proj,v_proj"
     if lora_r > 0:
-        # 定义一个函数 find_linear_layers，用于查找模型中需要应用 LoRA 的线性层
+
         def find_linear_layers(model, lora_target_modules):
             cls = torch.nn.Linear
             lora_module_names = set()
-            # 遍历模型的所有模块
+
             for name, module in model.named_modules():
                 if (
-                        # 检查模块是否是线性层
+
                         isinstance(module, cls)
-                        # 排除某些特定模块
+
                         and all(
                     [
                         x not in name
@@ -326,18 +322,17 @@ if __name__ == "__main__":
                     ]
                     ]
                 )
-                        # 检查模块名称是否包含目标模块名称（lora_target_modules）
+
                         and any([x in name for x in lora_target_modules])
                 ):
-                    # 将符合条件的模块名称添加到 lora_module_names 集合中
+
                     lora_module_names.add(name)
             return sorted(list(lora_module_names))
 
 
         lora_alpha = 16
         lora_dropout = 0.05
-        # args.lora_target_modules默认是 q_proj,v_proj
-        # 找到需要lora的层
+
         lora_target_modules = find_linear_layers(
             model, target_modules.split(",")
         )
@@ -349,7 +344,7 @@ if __name__ == "__main__":
             bias="none",
             task_type="CAUSAL_LM",
         )
-        # peft 库中的一个函数，用于将 LoRA 配置（lora_config）应用到模型（model）中。为每个目标模块添加低秩矩阵（LoRA 层）。返回一个经过 LoRA 微调的新模型实例。
+
         model = get_peft_model(model, lora_config)
         print("\nLora deployed")
 
@@ -423,7 +418,7 @@ if __name__ == "__main__":
             f.write(f"valuate on {name}:  miou {total_iou/count}  true fscore {total_fscore/count} \n")
 
 
-    # ---------------训练------------------------------------------
+    # ---------------train------------------------------------------
 
     model.train()
     epochs = args.epochs
@@ -493,13 +488,13 @@ if __name__ == "__main__":
     torch.save(model.state_dict(), f"/home/u2024110507/Ref_AVS/saved_model/{args.name}.pth")
     print(f"trained model saved as {args.name}.pth")
 
-    # ---------------在 seen 和 unseen 上测试------------------------------------------
+    # ---------------test on seen & unseen ------------------------------------------
     model.eval()
 
     valuate(model, val_dataloader_s_refer, args, 'test_s_refer')
     valuate(model, val_dataloader_u_refer, args, 'test_u_refer')
 
-    # ---------------在 Null 上测试------------------------------------------
+    # ---------------test on Null ------------------------------------------
     model.eval()
 
     total_metric = 0
