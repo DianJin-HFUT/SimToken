@@ -48,7 +48,6 @@ class REFAVS(Dataset):
         self.input_type = input_type
         self.data_dir = cfg.data_dir
 
-        # 读metadata 并将split，比如属于train的数据区分出来
         meta_path = f'{self.data_dir}/metadata_a.csv'
 
 
@@ -59,15 +58,12 @@ class REFAVS(Dataset):
         # 构建一个初始元素为空list的字典
         self.video_to_samples = defaultdict(list)
         self.audio_to_captions = defaultdict(list)
-        # 存储所有的uid，对应独特的视频，list中存储的是在metadata中的位置
+
         for i in range(len(self.metadata)):
             row = self.metadata.iloc[i]
             vid = row['uid'].rsplit('_', 2)[0]
             self.video_to_samples[vid].append(i)
-            # if split == 'test_n':
-            #     self.audio_to_captions[vid] = 'silent audio'
-            # else:
-            #     self.audio_to_captions[vid] = row['desc_a']
+
 
         self.all_vids = list(self.video_to_samples.keys())
         # print("all_vids", len(self.all_vids))
@@ -99,10 +95,9 @@ class REFAVS(Dataset):
 
 
 
-        # 用于输入大模型的视觉处理
         self.clip_image_processor = CLIPImageProcessor.from_pretrained(cfg.vision_tower)
 
-        # 用于输入samdecoder的视觉处理
+
         self.transform = ResizeLongestSide(1024)
 
         self.pixel_mean = torch.Tensor([113.263, 99.370, 92.492]).view(-1, 1, 1)
@@ -110,7 +105,7 @@ class REFAVS(Dataset):
         self.img_size = 1024
         # self.img_size = 224
 
-    # 处理 <image>
+
     def preprocess(self, x: torch.Tensor) -> torch.Tensor:
         """Normalize pixel values and pad to a square input."""
         # Normalize colors
@@ -136,13 +131,12 @@ class REFAVS(Dataset):
             vid = self.metadata.iloc[idx]['uid'].rsplit('_', 2)[0]
             indices = [idx]
         elif self.input_type == 'video':
-            # 此处idx不再直接从metadata中索引，而是去all_vids中索引独特的vid，对应独特的视频
+
             vid = self.all_vids[idx]
-            # indices是一个list 其中是当前vid对应的视频，在metadata中是哪些行
+
             indices = self.video_to_samples[vid]  # 获取所有该视频对应的行
 
 
-        # 统一资源加载（video embedding、audio、frames 等）
         feat_aud = torch.load(f'/home/u2024110507/Ref_AVS/data/audio_embed/{vid}.pt')
         image_feat = torch.load(f'{self.data_dir}/image_embed/{vid}.pt')
 
