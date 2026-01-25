@@ -48,7 +48,7 @@ class REFAVS(Dataset):
         self.input_type = input_type
         self.data_dir = cfg.data_dir
 
-        meta_path = f'{self.data_dir}/metadata_a.csv'
+        meta_path = f'{self.data_dir}/metadata.csv'
 
 
         metadata = pd.read_csv(meta_path, header=0)
