@@ -44,7 +44,7 @@ AUDIO_TOKEN_INDEX = -300
 DEFAULT_AUDIO_TOKEN = "<audio>"
 
 class REFAVS(Dataset):
-    def __init__(self, split='train', cfg=None, tokenizer=None, input_type='video'):
+    def __init__(self, split='train', cfg=None, tokenizer=None, input_type='refer):
         self.input_type = input_type
         self.data_dir = cfg.data_dir
 
@@ -57,7 +57,7 @@ class REFAVS(Dataset):
 
         # 构建一个初始元素为空list的字典
         self.video_to_samples = defaultdict(list)
-        self.audio_to_captions = defaultdict(list)
+
 
         for i in range(len(self.metadata)):
             row = self.metadata.iloc[i]
@@ -82,14 +82,7 @@ class REFAVS(Dataset):
             self.system = "\nReference Video: <video> \nTarget Image: <image> \n"
         elif cfg.conv_template == 1:
             self.system = "\nReference Video: <video> \nReference Audio: <audio> \nTarget Image: <image> \n"
-        elif cfg.conv_template == 2:
-            self.system = "\nReference Video: <video> \nAudio description: {audio_des} \nTarget Image: <image> \n"
-        elif cfg.conv_template == 3:
-            self.system = "\nReference Video: <video> \nReference Audio: <audio> \nAudio description: {audio_des} \nTarget Image: <image> \n"
-        elif cfg.conv_template == 4:
-            self.system = "\n"
-        elif cfg.conv_template == 5:
-            self.system = "Reference Audio: <audio> \nTarget Image: <image> \n"
+
 
         self.question = "What is {sent} in the Reference Video? Please respond with segmentation mask in the Target Image."
 
@@ -152,7 +145,7 @@ class REFAVS(Dataset):
         conv.messages = []
         # print("conv.system:", conv.system)
 
-        conv.system += self.system.format(audio_des=self.audio_to_captions[vid])
+        conv.system += self.system.format()
 
         # 根据indices去metadata中读对应的行
         for i, meta_idx in enumerate(indices):
