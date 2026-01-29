@@ -26,7 +26,7 @@ Download the sam_vit_h_4b8939.pth and put it in ```./models/segment_anything```
 
 ### Checkpoints
 
-Download our pretrained  **[Simtoken](https://drive.google.com/drive/folders/1S-AO0Jqb6zVN1ABHH9VBpZQYJ8PQ22ES?usp=drive_link)**.
+Download our pretrained  **[Simtoken](https://drive.google.com/file/d/1pargYfFy93rymCANuWV0nt6Lx3Ri406l/view?usp=sharing)**.
 
 ### Requirements
 Use  ```simtoken.yml``` to create your environment.
