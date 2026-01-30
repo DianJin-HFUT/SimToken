@@ -55,7 +55,7 @@ python save_sam_feats.py
 python -W ignore train.py --name 'xxx' \
     --vision_pretrained 'path/to/segment_anything/sam_vit_h_4b8939.pth' \
     --vision_tower 'openai/clip-vit-large-patch14' \
-    --mllm 'Chat-UniVi/Chat-UniVi' \
+    --mllm 'Chat-UniVi/Chat-UniVi-7B-v1.5' \
     --data_dir 'path/to/data'
 
 ```
@@ -64,7 +64,7 @@ python -W ignore train.py --name 'xxx' \
 python -W ignore load_model.py  --saved_model 'path/to/checkpoint.pth' \
     --vision_pretrained 'path/to/segment_anything/sam_vit_h_4b8939.pth' \
     --vision_tower 'openai/clip-vit-large-patch14' \
-    --mllm 'Chat-UniVi/Chat-UniVi' \
+    --mllm 'Chat-UniVi/Chat-UniVi-7B-v1.5' \
     --data_dir 'path/to/data' \
 
 ```
