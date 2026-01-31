@@ -33,7 +33,7 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument("--vision_pretrained",type=str,default='path/to/segment_anything/sam_vit_h_4b8939.pth')
 parser.add_argument("--vision_tower",type=str,default='openai/clip-vit-large-patch14')
-parser.add_argument("--mllm",type=str,default='Chat-UniVi/Chat-UniVi')
+parser.add_argument("--mllm",type=str,default='Chat-UniVi/Chat-UniVi-7B-v1.5')
 
 parser.add_argument("--conv_template",type=int,default=1)
 parser.add_argument("--ct_weight",type=float,default=0.1)
@@ -44,14 +44,16 @@ parser.add_argument("--start",type=int,default=0)
 
 parser.add_argument("--name",type=str,default='testrun')
 # path to ref-avs dataset
-parser.add_argument("--data_dir",type=str,default='path/to/data',help=f"The data paranet dir. File arch should be: {file_arch}")
+parser.add_argument("--data_dir",type=str,default='data',help=f"The data paranet dir. File arch should be: {file_arch}")
 # path to pretrained checkpoints
-parser.add_argument("--saved_model",type=str,default='path/to/saved_model', help="the pretrained simtoken")
+parser.add_argument("--saved_model",type=str,default='trained_simtoken.pth', help="the pretrained simtoken pth")
 
 
-parser.add_argument("--visualization_root",type=str,default='path/to/visualization_root')
-parser.add_argument("--log_root",type=str,default='path/to/log_root')
-parser.add_argument("--checkpoint_root",type=str,default='path/to/checkpoint_root', hepl="where to save trained model")
+parser.add_argument("--log_root",type=str,default='log', help="where to save log during training")
+parser.add_argument("--checkpoint_root",type=str,default='checkpoints', help="where to save trained checkpoints during training")
+
+parser.add_argument("--visualization_root",type=str,default='visualization', help="where to save visualization result during test")
+
 
 
 
