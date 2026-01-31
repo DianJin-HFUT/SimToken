@@ -43,15 +43,21 @@ parser.add_argument("--start",type=int,default=0)
 
 
 parser.add_argument("--name",type=str,default='testrun')
-# 数据集存放目录
+# path to ref-avs dataset
 parser.add_argument("--data_dir",type=str,default='path/to/data',help=f"The data paranet dir. File arch should be: {file_arch}")
-# 保存的训练后的模型参数地址
-parser.add_argument("--saved_model",type=str,default='path/to/saved_model')
+# path to pretrained checkpoints
+parser.add_argument("--saved_model",type=str,default='path/to/saved_model', help="the pretrained simtoken")
 
-# # 用于控制是否输出训练的层
+
+parser.add_argument("--visualization_root",type=str,default='path/to/visualization_root')
+parser.add_argument("--log_root",type=str,default='path/to/log_root')
+parser.add_argument("--checkpoint_root",type=str,default='path/to/checkpoint_root', hepl="where to save trained model")
+
+
+
 # parser.add_argument("--show_params", action='store_true', help=f"Show params names with Requires_grad==True.")
 
-# 学习率
+# learning rate
 parser.add_argument("--lr", type=float, default=5e-5, help='lr to fine tuning adapters.')
 # epochs
 parser.add_argument("--epochs", type=int, default=10, help='epochs to fine tuning adapters.')

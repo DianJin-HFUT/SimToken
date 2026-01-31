@@ -42,10 +42,6 @@ AUDIO_TOKEN_INDEX = -300
 DEFAULT_AUDIO_TOKEN = "<audio>"
 
 def set_seed(seed: int = 42):
-    """
-    完全固定 PyTorch 训练的所有随机性。
-    适用于 CPU、GPU、Dataloader 多线程环境。
-    """
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -60,7 +56,7 @@ def set_seed(seed: int = 42):
 
 
 def seed_worker(worker_id):
-    """用于 DataLoader 内部 worker 线程的随机数固定"""
+
     worker_seed = torch.initial_seed() % 2**32
     np.random.seed(worker_seed)
     random.seed(worker_seed)
@@ -222,7 +218,7 @@ if __name__ == "__main__":
     mp.set_start_method("spawn")
     set_seed(42)
     tokenizer = transformers.AutoTokenizer.from_pretrained(
-        "Chat-UniVi/Chat-UniVi",
+        args.mllm,
         cache_dir=None,
         model_max_length=2048,  # 2048
         padding_side="right",
@@ -414,7 +410,7 @@ if __name__ == "__main__":
 
         print(f"\n  valuate on {name}:  miou: {total_iou/count}  fscore: {total_fscore/count}")
 
-        with open(f"/home/u2024110507/Ref_AVS/checkpoints/{args.name}.txt", "a") as f:
+        with open(os.path.join(args.log_root, f'{args.name}.txt'), "a") as f:
             f.write(f"valuate on {name}:  miou {total_iou/count}  true fscore {total_fscore/count} \n")
 
 
@@ -482,10 +478,11 @@ if __name__ == "__main__":
         print(f"  Epoch {epoch + 1}, Loss:{running_loss / ((step + 1) / gradient_accumulation_steps) :.4f}, Learning Rate:{scheduler.get_last_lr()[0]:.6f}")
 
 
-        with open(f"/home/u2024110507/Ref_AVS/checkpoints/{args.name}.txt", "a") as f:
+        with open(os.path.join(args.log_root, f'{args.name}.txt'), "a") as f:
             f.write(f"Epoch {epoch}: running_loss {running_loss / len(train_dataloader) * gradient_accumulation_steps}  Learning Rate:{scheduler.get_last_lr()[0]:.6f}\n")
 
-    torch.save(model.state_dict(), f"/home/u2024110507/Ref_AVS/saved_model/{args.name}.pth")
+
+    torch.save(model.state_dict(), os.path.join(args.checkpoint_root, f"{args.name}.pth"))
     print(f"trained model saved as {args.name}.pth")
 
     # ---------------test on seen & unseen ------------------------------------------
@@ -533,6 +530,5 @@ if __name__ == "__main__":
 
     print(f"\n  valuate on test_n_refer, metric: {total_metric/count}")
 
-
-    with open(f"/home/u2024110507/Ref_AVS/checkpoints/{args.name}.txt", "a") as f:
+    with open(os.path.join(args.log_root, f'{args.name}.txt'), "a") as f:
         f.write(f"\n valuate on  test_n_refer:   metric {total_metric/count} \n")

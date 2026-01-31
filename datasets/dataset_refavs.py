@@ -20,7 +20,7 @@ import transformers
 from transformers import AutoImageProcessor, AutoTokenizer, AutoModel
 from PIL import Image
 
-from towhee import pipe, ops
+# from towhee import pipe, ops
 from transformers import pipeline
 from transformers import CLIPImageProcessor
 from models.segment_anything.utils.transforms import ResizeLongestSide
@@ -44,7 +44,7 @@ AUDIO_TOKEN_INDEX = -300
 DEFAULT_AUDIO_TOKEN = "<audio>"
 
 class REFAVS(Dataset):
-    def __init__(self, split='train', cfg=None, tokenizer=None, input_type='refer):
+    def __init__(self, split='train', cfg=None, tokenizer=None, input_type='refer'):
         self.input_type = input_type
         self.data_dir = cfg.data_dir
 
@@ -127,10 +127,10 @@ class REFAVS(Dataset):
 
             vid = self.all_vids[idx]
 
-            indices = self.video_to_samples[vid]  # 获取所有该视频对应的行
+            indices = self.video_to_samples[vid]
 
 
-        feat_aud = torch.load(f'/home/u2024110507/Ref_AVS/data/audio_embed/{vid}.pt')
+        feat_aud = torch.load(f'{self.data_dir}/audio_embed/{vid}.pt')
         image_feat = torch.load(f'{self.data_dir}/image_embed/{vid}.pt')
 
         img_clips = []
@@ -147,11 +147,11 @@ class REFAVS(Dataset):
 
         conv.system += self.system.format()
 
-        # 根据indices去metadata中读对应的行
+
         for i, meta_idx in enumerate(indices):
             row = self.metadata.iloc[meta_idx]
             refer = row['exp'].lower().rstrip('.')
-            fid = row['fid']  # 当前 refer 对应目标 ID
+            fid = row['fid']
 
             conv.append_message(conv.roles[0], self.question.format(sent=refer))
             conv.append_message(conv.roles[1], "Sure, it is [SEG]")

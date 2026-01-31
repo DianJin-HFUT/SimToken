@@ -1,4 +1,7 @@
 import transformers
+
+from torch.cuda.amp import autocast, GradScaler
+
 from datasets import REFAVS
 from configs import args
 from torch.utils.data import DataLoader
@@ -97,12 +100,11 @@ def tokenizer_image_audio_token(prompt, tokenizer, image_token_index=IMAGE_TOKEN
             offset = 1
             input_ids.append(tokenized_chunks[0][0])
 
-        # 确保 text_chunks 和 token_types 的长度一致
         min_length = min(len(text_chunks), len(token_types))
         for i in range(min_length):
-            # 添加文本部分
+
             input_ids.extend(tokenized_chunks[i][offset:])
-            # 添加对应的 token index
+
             if token_types[i] == "image":
                 input_ids.append(image_token_index)
             elif token_types[i] == "audio":
@@ -110,7 +112,7 @@ def tokenizer_image_audio_token(prompt, tokenizer, image_token_index=IMAGE_TOKEN
             elif token_types[i] == "video":
                 input_ids.extend([image_token_index] * num_frames)
 
-        # 如果 text_chunks 比 token_types 长，添加剩余的文本部分
+
         if len(text_chunks) > min_length:
             input_ids.extend(tokenized_chunks[min_length][offset:])
 
@@ -208,13 +210,13 @@ if __name__ == "__main__":
     mp.set_start_method("spawn")
     set_seed(42)
     tokenizer = transformers.AutoTokenizer.from_pretrained(
-        "/home/u2024110507/Ref_AVS/models/ChatUnivi7B",
+        args.mllm,
         cache_dir=None,
         model_max_length=2048,  # 2048
         padding_side="right",
         use_fast=False,
     )
-    # 在tokennizer中加入segtoken等
+
     tokenizer.pad_token = tokenizer.unk_token
     num_added_tokens = tokenizer.add_tokens("[SEG]")
     seg_token_idx = tokenizer("[SEG]", add_special_tokens=False).input_ids[0]  # 32000
@@ -222,23 +224,23 @@ if __name__ == "__main__":
 
 
     val_dataset_s = REFAVS('test_s', args, tokenizer, input_type='refer')
-    val_dataset_u = REFAVS('test_u', args, tokenizer, input_type='refer')
+    # val_dataset_u = REFAVS('test_u', args, tokenizer, input_type='refer')
     # val_dataset_n = REFAVS('test_n', args, tokenizer, input_type='refer')
 
 
     val_dataloader_s = DataLoader(val_dataset_s, batch_size=1, shuffle=False, num_workers=4, collate_fn=partial(collate_fn, tokenizer=tokenizer))
-    val_dataloader_u = DataLoader(val_dataset_u, batch_size=1, shuffle=False, num_workers=4, collate_fn=partial(collate_fn, tokenizer=tokenizer))
+    # val_dataloader_u = DataLoader(val_dataset_u, batch_size=1, shuffle=False, num_workers=4, collate_fn=partial(collate_fn, tokenizer=tokenizer))
     # val_dataloader_n = DataLoader(val_dataset_n, batch_size=2, shuffle=False, num_workers=4, collate_fn=partial(collate_fn, tokenizer=tokenizer))
 
 
 
     model_args = {
-        "train_mask_decoder": True,  # store_true 所以应该是true or false 应该是用来决定是否要训练decoder
+        "train_mask_decoder": True,
         "out_dim": 256,  # 256
         "ce_loss_weight": 1.0,
         "dice_loss_weight": 0.5,
         "bce_loss_weight": 2.0,
-        "seg_token_idx": seg_token_idx,  # [SEG] 标记的索引（input_ids）
+        "seg_token_idx": seg_token_idx,
         "vision_pretrained": args.vision_pretrained,  # sam_vit_h_xxx.pth
         "vision_tower": args.vision_tower,
         "use_im_start_end": False,
@@ -246,8 +248,10 @@ if __name__ == "__main__":
         "start": args.start,
     }
 
-    # model = VISAForCausalLM.from_pretrained(args.mllm, torch_dtype=torch.float32, low_cpu_mem_usage=True, **model_args)
+
     model = Simtoken_ForCausalLM.from_pretrained(args.mllm, torch_dtype=torch.float32, low_cpu_mem_usage=True, **model_args)
+    # model = Simtoken_ForCausalLM.from_pretrained(args.mllm, torch_dtype=torch.bfloat16, low_cpu_mem_usage=True,
+    #                                              **model_args)
 
     print("\nmodel loaded")
 
@@ -275,7 +279,7 @@ if __name__ == "__main__":
     model.get_model().initialize_cluster_modules(model_args_from_pt)
 
     model.get_model().initialize_lisa_modules(model.get_model().config)
-    # 冻结视觉模块（vision_tower）和多模态投影器
+
     for p in vision_tower.parameters():
         p.requires_grad = False
     for p in model.get_model().mm_projector.parameters():
@@ -284,16 +288,13 @@ if __name__ == "__main__":
     lora_r = 8
     target_modules = "q_proj,v_proj"
     if lora_r > 0:
-        # 定义一个函数 find_linear_layers，用于查找模型中需要应用 LoRA 的线性层
         def find_linear_layers(model, lora_target_modules):
             cls = torch.nn.Linear
             lora_module_names = set()
-            # 遍历模型的所有模块
+
             for name, module in model.named_modules():
                 if (
-                        # 检查模块是否是线性层
                         isinstance(module, cls)
-                        # 排除某些特定模块
                         and all(
                     [
                         x not in name
@@ -306,18 +307,15 @@ if __name__ == "__main__":
                     ]
                     ]
                 )
-                        # 检查模块名称是否包含目标模块名称（lora_target_modules）
                         and any([x in name for x in lora_target_modules])
                 ):
-                    # 将符合条件的模块名称添加到 lora_module_names 集合中
                     lora_module_names.add(name)
             return sorted(list(lora_module_names))
 
 
         lora_alpha = 16
         lora_dropout = 0.05
-        # args.lora_target_modules默认是 q_proj,v_proj
-        # 找到需要lora的层
+
         lora_target_modules = find_linear_layers(
             model, target_modules.split(",")
         )
@@ -329,7 +327,7 @@ if __name__ == "__main__":
             bias="none",
             task_type="CAUSAL_LM",
         )
-        # peft 库中的一个函数，用于将 LoRA 配置（lora_config）应用到模型（model）中。为每个目标模块添加低秩矩阵（LoRA 层）。返回一个经过 LoRA 微调的新模型实例。
+
         model = get_peft_model(model, lora_config)
         print("\nLora deployed")
 
@@ -342,10 +340,10 @@ if __name__ == "__main__":
     print("saved model loaded")
 
 
-    save_root = "/home/u2024110507/Ref_AVS/visualization_refer"
+    save_root = args.visualiztion_root
 
     def visualization(model, dataloader, save_root, name):
-        save_root = os.path.join(save_root, name)  #  "/home/u2024110507/Ref_AVS/visualization/test_seen"
+        save_root = os.path.join(save_root, name)
         os.makedirs(save_root, exist_ok=True)
         print(f"save_root: {save_root}")
         model.eval()
@@ -375,7 +373,7 @@ if __name__ == "__main__":
             for b in range(len(pred_masks)):
                 sample = torch.sigmoid(pred_masks[b])  # [num_seg, T, H, W]
                 vid = input_dict["vids"][b]
-                vid_root = os.path.join(save_root, vid)  # "/home/u2024110507/Ref_AVS/visualization/test_seen/xxxx"
+                vid_root = os.path.join(save_root, vid)
                 os.makedirs(vid_root, exist_ok=True)
                 # print("vid_root:", vid_root)
 
@@ -407,6 +405,8 @@ if __name__ == "__main__":
 
         for batch in tqdm(dataloader, desc=f"Evaluating on {name}"):
             input_dict = dict_to_cuda(batch)
+
+            # with torch.amp.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=True):
             with torch.no_grad():
                 output_dict = model.forward(images=input_dict["images"],
                                             images_clip=input_dict["images_clip"],
@@ -483,7 +483,7 @@ if __name__ == "__main__":
 
     valuate(model, val_dataloader_s, 'test_seen')
 
-    valuate(model, val_dataloader_u, 'test_unseen')
-
-    valuate_Null(model, val_dataloader_u)
+    # valuate(model, val_dataloader_u, 'test_unseen')
+    #
+    # valuate_Null(model, val_dataloader_u)
 
