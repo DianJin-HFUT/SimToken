@@ -10,6 +10,7 @@ from models.llava import conversation as conversation_lib
 # from  models.avs_model import VISAForCausalLM
 from  models.avs_model import Simtoken_ForCausalLM
 import torch
+from torch.cuda import amp
 from transformers import AutoConfig
 from peft import LoraConfig, get_peft_model
 from torch import optim
@@ -249,9 +250,9 @@ if __name__ == "__main__":
     }
 
 
-    model = Simtoken_ForCausalLM.from_pretrained(args.mllm, torch_dtype=torch.float32, low_cpu_mem_usage=True, **model_args)
-    # model = Simtoken_ForCausalLM.from_pretrained(args.mllm, torch_dtype=torch.bfloat16, low_cpu_mem_usage=True,
-    #                                              **model_args)
+    # model = Simtoken_ForCausalLM.from_pretrained(args.mllm, torch_dtype=torch.float32, low_cpu_mem_usage=True, **model_args)
+    model = Simtoken_ForCausalLM.from_pretrained(args.mllm, torch_dtype=torch.bfloat16, low_cpu_mem_usage=True,
+                                                 **model_args)
 
     print("\nmodel loaded")
 
@@ -340,7 +341,7 @@ if __name__ == "__main__":
     print("saved model loaded")
 
 
-    save_root = args.visualiztion_root
+    save_root = args.visualization_root
 
     def visualization(model, dataloader, save_root, name):
         save_root = os.path.join(save_root, name)
@@ -406,25 +407,25 @@ if __name__ == "__main__":
         for batch in tqdm(dataloader, desc=f"Evaluating on {name}"):
             input_dict = dict_to_cuda(batch)
 
-            # with torch.amp.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=True):
-            with torch.no_grad():
-                output_dict = model.forward(images=input_dict["images"],
-                                            images_clip=input_dict["images_clip"],
-                                            audio_features=input_dict["audio_feats"],
-                                            image_features=input_dict["image_feats"],
-                                            input_ids=input_dict["input_ids"],
-                                            labels=input_dict["labels"],
-                                            attention_masks=input_dict["attention_masks"],
-                                            masks_list=input_dict["masks"],
-                                            resize_list=input_dict["resizes"],
-                                            orgsize_list=input_dict["orgsizes"],
-                                            conversation_list=input_dict["convs"],
-                                            refs_num=input_dict["refs_num"],
-                                            fids=input_dict["fids"],
-                                            vids=input_dict["vids"],
-                                            contrast=args.ct_weight,
-                                            ref_ids=input_dict["ref_ids"],
-                                            inference=True)
+            with torch.cuda.amp.autocast(dtype=torch.bfloat16, enabled=True):
+                with torch.no_grad():
+                    output_dict = model.forward(images=input_dict["images"],
+                                                images_clip=input_dict["images_clip"],
+                                                audio_features=input_dict["audio_feats"],
+                                                image_features=input_dict["image_feats"],
+                                                input_ids=input_dict["input_ids"],
+                                                labels=input_dict["labels"],
+                                                attention_masks=input_dict["attention_masks"],
+                                                masks_list=input_dict["masks"],
+                                                resize_list=input_dict["resizes"],
+                                                orgsize_list=input_dict["orgsizes"],
+                                                conversation_list=input_dict["convs"],
+                                                refs_num=input_dict["refs_num"],
+                                                fids=input_dict["fids"],
+                                                vids=input_dict["vids"],
+                                                contrast=args.ct_weight,
+                                                ref_ids=input_dict["ref_ids"],
+                                                inference=True)
             pred_masks = output_dict["pred_masks"]  # list[B]:[num_seg, T, H, W]
             gt_masks = output_dict["gt_masks"]  # list[B]:[num_seg, T, H, W]
             for i in range(len(pred_masks)):
